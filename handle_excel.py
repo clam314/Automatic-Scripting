@@ -1,6 +1,6 @@
 from __future__ import division
 import pandas as pd
-import openpyxl, time, os
+import openpyxl, time, os,re
 import each_province, focus_time_sheet, e_morning_sheet, increase_sheet
 import pd_util as pdu
 
@@ -9,12 +9,16 @@ file_key = '每日需求'
 
 def find_excel():
     curr_dir = os.path.dirname(os.path.realpath(__file__))
+    files = list()
     for f in os.listdir(curr_dir):
         if file_key in f:
             print("Find an excel file:", f)
-            return f
-    print('No excel file found!')
-    os._exit(0)
+            files.append(f)
+    if len(files) == 0:
+        print('No excel file found!')
+        os._exit(0)
+    else:
+        return files
 
 
 def handle_excel(r_file_name, w_file_name, w_file_name_2):
@@ -59,8 +63,12 @@ def handle_excel(r_file_name, w_file_name, w_file_name_2):
     print('totaltime:', time.time() - startTime)
 
 
-r_in = find_excel()
-st = time.strftime("%Y%m%d")
-w_out = '收入异常监控' + st + '.xlsx'
-w_out_2 = '收入异常名单' + st + '.xlsx'
-handle_excel(r_in, w_out, w_out_2)
+fileExcels = find_excel()
+for f in fileExcels:
+    search = re.search(r'\d{4}',f)
+    st = f
+    if search :
+        st = search.group(0)
+    w_out = '收入异常监控' + st + '.xlsx'
+    w_out_2 = '收入异常名单' + st + '.xlsx'
+    handle_excel(f, w_out, w_out_2)
