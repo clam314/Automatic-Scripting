@@ -1,6 +1,6 @@
 from __future__ import division
 import pandas as pd
-import openpyxl, time, os,re
+import openpyxl, time, os, re
 import each_province, focus_time_sheet, e_morning_sheet, increase_sheet
 import pd_util as pdu
 
@@ -21,9 +21,18 @@ def find_excel():
         return files
 
 
+def cal_score(se):
+    dim = (se[4] - 1) * 10
+    max = se[0:4].max()
+    score = dim + max
+    if score > 100:
+        score = 100
+    return score
+
+
 def handle_excel(r_file_name, w_file_name, w_file_name_2):
     startTime = time.time()
-    print("start:",r_file_name)
+    print("start handle:", r_file_name)
     excelWriter = pd.ExcelWriter(w_file_name)
 
     sheetList = list()
@@ -50,36 +59,42 @@ def handle_excel(r_file_name, w_file_name, w_file_name_2):
 
     statistics_tb['异常维度个数'] = statistics_tb[count_list].apply(
         lambda x: x.count(), axis=1)
-    statistics_tb['评分'] = statistics_tb[count_list].apply(
-        lambda x: x.max(), axis=1)
-    total_income = pd.read_excel(r_file_name,sheet_name='全国', header=1)
+    statistics_tb['评分'] = statistics_tb[count_list + ['异常维度个数']].apply(
+        lambda x: cal_score(x), axis=1)
+    total_income = pd.read_excel(r_file_name, sheet_name='全国', header=1)
     total_income.columns = increase_sheet.IncreaseIncome.sourceHeader
-    statistics_tb = pdu.vlookup(statistics_tb,total_income[['应用ID','当日金额']],'应用ID')
+    statistics_tb = pdu.vlookup(statistics_tb, total_income[['应用ID', '当日金额']],
+                                '应用ID')
 
     #对统计表进行统计应用个数、AP个数和金额总数
-    all_income = statistics_tb[['当日金额']].apply(lambda x : x.sum())
+    all_income = statistics_tb[['当日金额']].apply(lambda x: x.sum())
     app_num = len(statistics_tb)
     ap_num = len(statistics_tb.drop_duplicates(['AP代码']))
-    total_info_tb = pd.DataFrame([{'应用数目':app_num,'AP数目':ap_num,'涉及总金额':all_income['当日金额']}])
+    total_info_tb = pd.DataFrame([{
+        '应用数目': app_num,
+        'AP数目': ap_num,
+        '涉及总金额': all_income['当日金额']
+    }])
 
     s_ew = pd.ExcelWriter(w_file_name_2)
     statistics_tb.to_excel(
         s_ew, encoding='utf-8', sheet_name='异常统计', index=False)
-    total_info_tb.to_excel(s_ew, encoding='utf-8', sheet_name='涉及统计', index=False)
+    total_info_tb.to_excel(
+        s_ew, encoding='utf-8', sheet_name='涉及统计', index=False)
     for i in range(0, len(exp_tbs)):
         exp_tbs[i].to_excel(
             s_ew, encoding='utf-8', sheet_name=sheetList[i].name, index=False)
     s_ew.save()
     excelWriter.save()
-    pdu.change_sheet_style(w_file_name_2,'异常统计')
+    pdu.change_sheet_style(w_file_name_2, '异常统计')
     print('totaltime:', time.time() - startTime)
 
 
 fileExcels = find_excel()
 for f in fileExcels:
-    search = re.search(r'\d{4}',f)
+    search = re.search(r'\d{4}', f)
     st = f
-    if search :
+    if search:
         st = search.group(0)
     w_out = '收入异常监控' + st + '.xlsx'
     w_out_2 = '收入异常名单' + st + '.xlsx'
