@@ -43,6 +43,9 @@ def change_sheet_style(fileName,sheetName):
 def __set_number_format(cell, title):
     if title == None : 
         return
-    if '评分' in title or '应用ID' == title:
+    if '评分' in title :
+        cell.number_format = '0.00'
+    elif '应用ID' == title:
         cell.number_format = '0'
+        
 

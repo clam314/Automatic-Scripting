@@ -1,6 +1,6 @@
 from __future__ import division
 import pandas as pd
-import openpyxl, time
+import openpyxl, time,math
 import pd_util as pdu
 
 
@@ -17,6 +17,8 @@ class ProvinceIncome(object):
     ]
 
     index = '应用ID'
+
+    basic_score = 20
 
     theshold = None
 
@@ -76,14 +78,36 @@ class ProvinceIncome(object):
     def data_analysis(self):
         eb = self.table[(self.table['总金额'] >= 5000)
                         & (self.table['较占比阈值增长部分'] > 0)].copy()
-        eb['偏离度评分'] = (eb['计费省份个数'] * eb['TOP省份占比'] - 1.6) / 8.4 * 25
-        eb['偏离度评分'] = eb['偏离度评分'].map(lambda x: x if x < 25 else 25)
-        eb['收入体量评分'] = eb['总金额'].apply(
-            lambda x: (x - 5000) / 45000 * 25 if (x - 5000) / 45000 * 25 < 25 else 25
-        )
-        eb['分省评分'] = eb['偏离度评分'] + eb['收入体量评分'] + 50
+        eb['偏离度评分'] = eb[['计费省份个数','TOP省份占比']].apply(lambda x: self.__score_proportion(x),axis = 1)
+        eb['收入总量评分'] = eb['总金额'].apply(lambda x: self.__score_value(x))
+        eb['分省评分'] = eb['偏离度评分'] + eb['收入总量评分'] + ProvinceIncome.basic_score
         self.ep_table = eb
         return self
+
+    def __score_value(self, x):
+        if x <= 10000 :
+            return 0
+        n = x/10000
+        score = 0.5*math.pow(n,2)-0.5*n
+        if score > 10 :
+            score = 10
+        elif score < 0 :
+            score = 0
+        return score
+
+    def __score_proportion(self, x):
+        num = x[0]
+        if num > 10 :
+            num = 10
+        n = num * x[1]
+        if n <=2 :
+            return 0
+        score = 0.25*math.pow(n,2)+5.75*n-12.5
+        if score > 70 :
+            score = 70
+        elif score < 0 :
+            score = 0
+        return score 
 
     def data_output(self):
         self.table.to_excel(

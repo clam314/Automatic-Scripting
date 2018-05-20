@@ -1,7 +1,7 @@
 from __future__ import division
 import pandas as pd
 import pd_util as pdu
-import openpyxl
+import openpyxl,math
 
 
 class IncreaseIncome(object):
@@ -12,6 +12,8 @@ class IncreaseIncome(object):
     ]
 
     index = '应用ID'
+
+    basic_score = 30
 
     def __init__(self, excel_writer):
         self.name = '收入异增'
@@ -45,15 +47,30 @@ class IncreaseIncome(object):
     def data_analysis(self):
         eb = self.table[(self.table['前日金额'] >= 5000)
                         & (self.table['环比增长'] >= 1)].copy()
-        eb['增长率评分'] = eb['环比增长'].apply(
-            lambda x: (x - 1) / 4 * 25 if (x - 1) / 4 * 25 < 25 else 25)
-        eb['收入体量评分'] = eb['收入增长'].apply(
-            lambda x: (x - 5000) / 45000 * 25 if (x - 5000) / 45000 * 25 < 25 else 25
-        )
-        eb['异增评分'] = eb['增长率评分'] + eb['收入体量评分'] + 50
+        eb['环比增长率评分'] = eb['环比增长'].apply(lambda x : self.__score_proportion(x))
+        eb['收入增长量评分'] = eb['收入增长'].apply(lambda x : self.__score_value(x))
+        eb['异增评分'] = eb['环比增长率评分'] + eb['收入增长量评分'] + IncreaseIncome.basic_score
         self.ep_table = eb
         return self
 
+
+    def __score_value(self, x):
+        n = x/10000
+        score = 0.75*math.pow(n,2)+3*n-3.75
+        if score > 30 :
+            score = 30
+        elif score < 0 :
+            score = 0
+        return score
+
+    def __score_proportion(self, x):
+        score = 1.25*math.pow(x,2)+2.5*x-3.75
+        if score > 40 :
+            score = 40
+        elif score < 0 :
+            score = 0
+        return score 
+    
     def data_output(self):
         self.table.to_excel(
             self.excelWriter, encoding='utf-8', sheet_name=self.name, index=False)

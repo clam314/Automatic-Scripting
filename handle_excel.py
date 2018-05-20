@@ -22,11 +22,12 @@ def find_excel():
 
 
 def cal_score(se):
-    dim = (se[4] - 1) * 10
-    max = se[0:4].max()
-    score = dim + max
-    if score > 100:
-        score = 100
+    # dim = (se[4] - 1) * 10
+    # max = se[0:4].max()
+    # score = dim + max
+    # if score > 100:
+    #     score = 100
+    score = se.sum()
     return score
 
 
@@ -59,43 +60,58 @@ def handle_excel(r_file_name, w_file_name, w_file_name_2):
 
     statistics_tb['异常维度个数'] = statistics_tb[count_list].apply(
         lambda x: x.count(), axis=1)
-    statistics_tb['评分'] = statistics_tb[count_list + ['异常维度个数']].apply(
-        lambda x: cal_score(x), axis=1)
+    statistics_tb['评分'] = statistics_tb[count_list].apply(
+        lambda x: x.sum(), axis=1)
+
     total_income = pd.read_excel(r_file_name, sheet_name='全国', header=1)
     total_income.columns = increase_sheet.IncreaseIncome.sourceHeader
     statistics_tb = pdu.vlookup(statistics_tb, total_income[['应用ID', '当日金额']],
                                 '应用ID')
 
-    cal_time_tb = pd.read_excel('网页计费全量计费点（包时长）.xlsx')
-    cal_type_tb = pd.read_excel(r_file_name, sheet_name='计费类型')
-    statistics_tb = pdu.vlookup(
-        statistics_tb, cal_type_tb[['应用ID', "计费类型（网页计费/IAP)"]], '应用ID')
-    statistics_tb = pdu.vlookup(statistics_tb, cal_time_tb[['应用ID', "计费点类型"]],
-                                '应用ID')
-    statistics_tb['计费点类型'] = statistics_tb['计费点类型'].map(
-        lambda x: x if x == '包时长' else '非包时长')
+    has_type_sheet = True
+    try:
+        cal_type_tb = pd.read_excel(r_file_name, sheet_name='计费类型')
+    except Exception:
+        print('not find sheet(计费类型)！')
+        has_type_sheet = False
+    
+    if has_type_sheet:
+        cal_time_tb = pd.read_excel('网页计费全量计费点（包时长）.xlsx')
+        statistics_tb = pdu.vlookup(
+            statistics_tb, cal_type_tb[['应用ID', "计费类型（网页计费/IAP)"]], '应用ID')
+        statistics_tb = pdu.vlookup(statistics_tb, cal_time_tb[['应用ID', "计费点类型"]],
+                                    '应用ID')
+        statistics_tb['计费点类型'] = statistics_tb['计费点类型'].map(
+            lambda x: x if x == '包时长' else '非包时长')
 
     #对统计表进行统计应用个数、AP个数和金额总数
     all_income = statistics_tb[['当日金额']].apply(lambda x: x.sum())
     app_num = len(statistics_tb)
     ap_num = len(statistics_tb.drop_duplicates(['AP代码']))
-    web_is_time_num = len(
-        statistics_tb[(statistics_tb["计费类型（网页计费/IAP)"] == '网页计费') & (statistics_tb["计费点类型"] == '包时长')])
-    web_not_time_num = len(
-        statistics_tb[(statistics_tb["计费类型（网页计费/IAP)"] == '网页计费') & (statistics_tb["计费点类型"] == '非包时长')])
-    app_is_time_num = len(
-        statistics_tb[(statistics_tb["计费类型（网页计费/IAP)"] == '应用内计费') & (statistics_tb["计费点类型"] == '包时长')])
-    app_not_time_num = len(
-        statistics_tb[(statistics_tb["计费类型（网页计费/IAP)"] == '应用内计费') & (statistics_tb["计费点类型"] == '非包时长')])
-    total_info_tb = pd.DataFrame([{
-        '应用数目': app_num,
-        'AP数目': ap_num,
-        '涉及总金额': all_income['当日金额'],
-        '网页包时长数': web_is_time_num,
-        '网页点播数': web_not_time_num,
-        '应用内包时长数': app_is_time_num,
-        '应用内点播数': app_not_time_num
-    }])
+    if has_type_sheet:
+        web_is_time_num = len(
+            statistics_tb[(statistics_tb["计费类型（网页计费/IAP)"] == '网页计费') & (statistics_tb["计费点类型"] == '包时长')])
+        web_not_time_num = len(
+            statistics_tb[(statistics_tb["计费类型（网页计费/IAP)"] == '网页计费') & (statistics_tb["计费点类型"] == '非包时长')])
+        app_is_time_num = len(
+            statistics_tb[(statistics_tb["计费类型（网页计费/IAP)"] == '应用内计费') & (statistics_tb["计费点类型"] == '包时长')])
+        app_not_time_num = len(
+            statistics_tb[(statistics_tb["计费类型（网页计费/IAP)"] == '应用内计费') & (statistics_tb["计费点类型"] == '非包时长')])
+        total_info_tb = pd.DataFrame([{
+            '应用数目': app_num,
+            'AP数目': ap_num,
+            '涉及总金额': all_income['当日金额'],
+            '网页包时长数': web_is_time_num,
+            '网页点播数': web_not_time_num,
+            '应用内包时长数': app_is_time_num,
+            '应用内点播数': app_not_time_num
+        }])
+    else:
+        total_info_tb = pd.DataFrame([{
+            '应用数目': app_num,
+            'AP数目': ap_num,
+            '涉及总金额': all_income['当日金额']
+        }])
 
     s_ew = pd.ExcelWriter(w_file_name_2)
     statistics_tb.to_excel(

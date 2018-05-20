@@ -1,12 +1,14 @@
 from __future__ import division
 import pandas as pd
 import pd_util as pdu
-import openpyxl
+import openpyxl,math
 
 
 class FocusTimeIncome(object):
 
     index = '应用ID'
+
+    basic_score = 30
 
     def __init__(self, excel_writer):
         self.name = '时间段集中度'
@@ -14,7 +16,7 @@ class FocusTimeIncome(object):
         self.table = ''
         self.mb_table = ''
         self.ep_table = ''
-        self.statistics_columns = ['应用名称','应用ID','AP代码','AP名称','时间段评分']
+        self.statistics_columns = ['应用名称', '应用ID', 'AP代码', 'AP名称', '时间段评分']
 
     def create_sheet(self, file_name, sheet_name='应用流水金额', header=1):
         self.table = pd.read_excel(
@@ -24,8 +26,11 @@ class FocusTimeIncome(object):
         ).data_output()
 
     def data_get(self, mb_table):
-        self.table = pdu.vlookup(self.table,mb_table[[FocusTimeIncome.index,"计费点类型"]], FocusTimeIncome.index)
-        self.table['计费点类型'] = self.table['计费点类型'].map(lambda x : x if x == '包时长' else '非包时长')
+        self.table = pdu.vlookup(self.table,
+                                 mb_table[[FocusTimeIncome.index,
+                                           "计费点类型"]], FocusTimeIncome.index)
+        self.table['计费点类型'] = self.table['计费点类型'].map(
+            lambda x: x if x == '包时长' else '非包时长')
         return self
 
     def data_clean(self):
@@ -46,11 +51,33 @@ class FocusTimeIncome(object):
         tb = self.table
         self.ep_table = tb[(tb['计费点类型'] != '包时长') & (tb['总收入'] >= 1000) &
                            (tb['TOP6小时占比'] >= 0.95)].copy()
-        self.ep_table['收入体量评分'] = self.ep_table['总收入'].map(
-            lambda x: (x - 1000) / 49000 * 50 if (x - 1000) / 49000 * 50 < 50 else 50
-        )
-        self.ep_table['时间段评分'] = self.ep_table['收入体量评分'].map(lambda x: x + 50)
+        self.ep_table['收入总量评分'] = self.ep_table['总收入'].map(
+            lambda x: self.__score_value(x))
+        self.ep_table['时间段占比评分'] = self.ep_table['TOP6小时占比'].map(
+            lambda x: self.__score_proportion(x))
+        self.ep_table[
+            '时间段评分'] = self.ep_table['收入总量评分'] + self.ep_table['时间段占比评分'] + FocusTimeIncome.basic_score
         return self
+
+    def __score_value(self, x):
+        if x < 10000:
+            return 0
+        n = x / 10000
+        score = 0.5 * math.pow(n, 2) + 2 * n - 2.5
+        if score > 20:
+            score = 20
+        elif score < 0:
+            score = 0
+        return score
+
+    def __score_proportion(self, x):
+        n = x * 100 - 95
+        score = 0.5 * math.pow(n, 2) + 7.5 * n 
+        if score > 50:
+            score = 50
+        elif score < 0:
+            score = 0
+        return score
 
     def data_output(self):
         self.table.to_excel(
