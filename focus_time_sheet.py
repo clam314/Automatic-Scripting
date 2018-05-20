@@ -3,13 +3,14 @@ import pandas as pd
 import pd_util as pdu
 import openpyxl,math
 
+ref_file_name = None
 
 class FocusTimeIncome(object):
 
     index = '应用ID'
 
     basic_score = 30
-
+    
     def __init__(self, excel_writer):
         self.name = '时间段集中度'
         self.excelWriter = excel_writer
@@ -21,7 +22,7 @@ class FocusTimeIncome(object):
     def create_sheet(self, file_name, sheet_name='应用流水金额', header=1):
         self.table = pd.read_excel(
             file_name, sheet_name=sheet_name, header=header)
-        self.mb_table = pd.read_excel('网页计费全量计费点（包时长）.xlsx')
+        self.mb_table = pd.read_excel(ref_file_name)
         self.data_get(self.mb_table).data_clean().data_handle().data_analysis(
         ).data_output()
 

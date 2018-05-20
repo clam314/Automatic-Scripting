@@ -4,22 +4,8 @@ import openpyxl, time, os, re
 import each_province, focus_time_sheet, e_morning_sheet, increase_sheet
 import pd_util as pdu
 
-file_key = '每日需求'
-
-
-def find_excel():
-    curr_dir = os.path.dirname(os.path.realpath(__file__))
-    files = list()
-    for f in os.listdir(curr_dir):
-        if file_key in f:
-            print("Find an excel file:", f)
-            files.append(f)
-    if len(files) == 0:
-        print('No excel file found!')
-        os._exit(0)
-    else:
-        return files
-
+ref_dir = './reference/'
+ref_file = ref_dir+'网页计费全量计费点（包时长）.xlsx'
 
 def cal_score(se):
     # dim = (se[4] - 1) * 10
@@ -32,9 +18,9 @@ def cal_score(se):
 
 
 def handle_excel(r_file_name, w_file_name, w_file_name_2):
-    startTime = time.time()
-    print("start handle:", r_file_name)
     excelWriter = pd.ExcelWriter(w_file_name)
+
+    focus_time_sheet.ref_file_name = ref_file
 
     sheetList = list()
     sheetList.append(increase_sheet.IncreaseIncome(excelWriter))
@@ -76,7 +62,7 @@ def handle_excel(r_file_name, w_file_name, w_file_name_2):
         has_type_sheet = False
     
     if has_type_sheet:
-        cal_time_tb = pd.read_excel('网页计费全量计费点（包时长）.xlsx')
+        cal_time_tb = pd.read_excel(ref_file)
         statistics_tb = pdu.vlookup(
             statistics_tb, cal_type_tb[['应用ID', "计费类型（网页计费/IAP)"]], '应用ID')
         statistics_tb = pdu.vlookup(statistics_tb, cal_time_tb[['应用ID', "计费点类型"]],
@@ -124,15 +110,4 @@ def handle_excel(r_file_name, w_file_name, w_file_name_2):
     s_ew.save()
     excelWriter.save()
     pdu.change_sheet_style(w_file_name_2, '异常统计')
-    print('totaltime:', time.time() - startTime)
 
-
-fileExcels = find_excel()
-for f in fileExcels:
-    search = re.search(r'\d{4}', f)
-    st = f
-    if search:
-        st = search.group(0)
-    w_out = '收入异常监控' + st + '.xlsx'
-    w_out_2 = '收入异常名单' + st + '.xlsx'
-    handle_excel(f, w_out, w_out_2)
