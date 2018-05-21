@@ -6,7 +6,7 @@ createDoc = True
 exp_source_key = '每日需求'
 excelFiles = cu.find_files(exp_source_key)
 if excelFiles == None:
-    print('No handle and exit!')
+    print('No file to handle and exit!')
     os._exit(0)
 
 for f in excelFiles:
