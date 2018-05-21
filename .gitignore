@@ -3,4 +3,9 @@
 *.docx
 *.ini
 *.html
+/.vscode
+/build
+/dist
+*.spec
+
 

@@ -2,6 +2,8 @@ import common_utils as cu
 import os,re,time
 import handle_excel,create_daily_doc
 
+cu.cur_dir = os.path.dirname(os.path.realpath(__file__))
+
 createDoc = True
 exp_source_key = '每日需求'
 excelFiles = cu.find_files(exp_source_key)

@@ -3,6 +3,8 @@ import config, amail, os, openpyxl,time
 import common_utils as cu
 import pandas as pd
 
+cu.cur_dir = os.path.dirname(os.path.realpath(__file__))
+
 doc_exp_key = '异常业务通报报表'
 excel_daily_key = '收入异常名单'
 excel_exp_key = '收入异常'
