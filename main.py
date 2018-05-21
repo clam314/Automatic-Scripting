@@ -10,6 +10,8 @@ if excelFiles == None:
     os._exit(0)
 
 for f in excelFiles:
+    print('handle:',f)
+    startTime = time.time()
     search = re.search(r'\d{4}', f)
     st = f
     if search:
@@ -21,3 +23,4 @@ for f in excelFiles:
     #根据异常业务名单生成通报表
     if createDoc : 
         create_daily_doc.handel_exp2doc(w_out_2)
+    print('finish:',f,time.time()-startTime)
