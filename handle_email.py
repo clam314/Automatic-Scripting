@@ -52,9 +52,7 @@ def handleEmail():
     m_addr_d, c_ddr_d = cf.getDailyReceiver()
     #发送各类邮件
     smail.sendExpEmail(m_addr_e, c_addr_e, _find_exp_doc(doc_exp_key))
-    time.sleep(3)
     smail.sendSynExpEmail(m_addr_see, c_addr_see, cu.find_files(excel_exp_key))
-    time.sleep(3)
     smail.sendDailyEmail(m_addr_d, c_ddr_d, _createDailyInfo())
     # #退出邮件服务器
     # smail.smtpQuit()
