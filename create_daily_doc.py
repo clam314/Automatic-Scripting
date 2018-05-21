@@ -12,7 +12,7 @@ locale.setlocale(locale.LC_CTYPE,'chinese')
 file_key = '收入异常名单'
 doc_template = "./reference/异常业务通报报表模板.docx"
 this_year = time.localtime().tm_year
-out_template_format = './output/异常业务通报报表'
+out_template_format = '异常业务通报报表'
 
 
 out_columns = ['应用名称','应用ID','AP代码',"AP名称",'异常维度个数']

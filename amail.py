@@ -74,9 +74,12 @@ class Amail(object):
         self._user = user
         self._pwd = pwd
         self._nick = nick
+        self._host = host
+        self._port = port
+        self._sslPort = sslPort
         # self._smtp = smtplib.SMTP(host=host, port=port)
-        self._smtp = smtplib.SMTP_SSL(host=host, port=sslPort)
-        self._smtp.login(user, pwd)
+        self._smtp = smtplib.SMTP_SSL()
+        
 
     #发送异常通报表邮件
     def sendExpEmail(self, m_addr, c_addr, files):
@@ -89,6 +92,23 @@ class Amail(object):
         main_msg.attach(content_msg)
         main_msg = self._createEmailHeader(main_msg, m_addr, c_addr,
                                            timeStr + "的异常业务通报报表")
+        # 添加附件
+        if not (files == None):
+            for f in files:
+                main_msg.attach(self._getAnnex(f))
+        # 发送邮件
+        self._sendEmail(addrStr2list(m_addr), addrStr2list(c_addr), main_msg)
+
+    #发送同步异常通报表邮件
+    def sendSynExpEmail(self, m_addr, c_addr, files):
+        main_msg = MIMEMultipart()
+        # 添加邮件正文text
+        con_html = 'FYI'
+        con_html = _getSignature() % con_html
+        content_msg = MIMEText(con_html, _subtype='html', _charset='utf-8')
+        main_msg.attach(content_msg)
+        main_msg = self._createEmailHeader(main_msg, m_addr, c_addr,
+                                           "Re:异常业务通报报表")
         # 添加附件
         if not (files == None):
             for f in files:
@@ -118,12 +138,14 @@ class Amail(object):
         self._sendEmail(addrStr2list(m_addr), addrStr2list(c_addr), main_msg)
 
     def _sendEmail(self, toAddr, ccAddr, msg):
-        self._smtp.set_debuglevel(1)
+        self._smtp.set_debuglevel(False)
+        self._smtp.connect(host=self._host,port=self._sslPort)
         self._smtp.login(self._user, self._pwd)
         addr_list = toAddr
         if not (ccAddr == None):
             addr_list = addr_list + ccAddr
         self._smtp.sendmail(self._user, addr_list, msg.as_string())
+        self._smtp.quit()
 
     def _createEmailHeader(self, msg, toAddr, ccAddr, sub):
         msg['From'] = _format_addr(self._nick + '<%s>' % self._user)
@@ -152,12 +174,10 @@ class Amail(object):
         if files == None:
             return content
         sdt = _get_time_by_file(files[0])
-        sdt = sdt + timedelta(days=1)
         content = sdt.strftime('%Y年%m月%d日')
         flen = len(files)
         if flen > 1:
             ldt = _get_time_by_file(files[flen - 1])
-            ldt = ldt + timedelta(days=1)
             content = content + "-" + ldt.strftime('%Y年%m月%d日')
         return content
 
