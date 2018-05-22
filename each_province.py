@@ -18,12 +18,13 @@ class ProvinceIncome(object):
 
     index = '应用ID'
 
-    basic_score = 20
+    basic_score = 0
 
     theshold = None
 
-    def __init__(self, excel_writer):
+    def __init__(self, excel_writer,scoring=True):
         self.name = '分省集中度'
+        self._scoring = scoring
         self.excelWriter = excel_writer
         self.table = ''
         self.income_tb = ''
@@ -78,23 +79,19 @@ class ProvinceIncome(object):
     def data_analysis(self):
         eb = self.table[(self.table['总金额'] >= 5000)
                         & (self.table['较占比阈值增长部分'] > 0)].copy()
-        eb['偏离度评分'] = eb[['计费省份个数','TOP省份占比']].apply(lambda x: self.__score_proportion(x),axis = 1)
-        eb['收入总量评分'] = eb['总金额'].apply(lambda x: self.__score_value(x))
-        eb['分省评分'] = eb['偏离度评分'] + eb['收入总量评分'] + ProvinceIncome.basic_score
+        if self._scoring:
+            eb['偏离度评分'] = eb[['计费省份个数','TOP省份占比']].apply(lambda x: self.__score_proportion(x),axis = 1)
+            eb['收入总量评分'] = eb['总金额'].apply(lambda x: self.__score_value(x))
+            eb['分省评分'] = eb['偏离度评分'] + eb['收入总量评分'] + ProvinceIncome.basic_score
         self.ep_table = eb
         return self
 
+    #收入总量评分
     def __score_value(self, x):
-        if x <= 10000 :
-            return 0
-        n = x/10000
-        score = 0.5*math.pow(n,2)-0.5*n
-        if score > 10 :
-            score = 10
-        elif score < 0 :
-            score = 0
+        score = (x-5000)/45000*15
         return score
 
+    #偏离度评分
     def __score_proportion(self, x):
         num = x[0]
         if num > 10 :
@@ -102,11 +99,7 @@ class ProvinceIncome(object):
         n = num * x[1]
         if n <=2 :
             return 0
-        score = 0.25*math.pow(n,2)+5.75*n-12.5
-        if score > 70 :
-            score = 70
-        elif score < 0 :
-            score = 0
+        score = 35/64*math.pow(n,2)
         return score 
 
     def data_output(self):

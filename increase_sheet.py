@@ -13,11 +13,12 @@ class IncreaseIncome(object):
 
     index = '应用ID'
 
-    basic_score = 30
+    basic_score = 0
 
-    def __init__(self, excel_writer):
+    def __init__(self, excel_writer,scoring=True):
         self.name = '收入异增'
         self.excelWriter = excel_writer
+        self._scroing = scoring
         self.table = ''
         self.ep_table = ''
         self.statistics_columns = ['应用名称','应用ID','AP代码','AP名称','异增评分']
@@ -47,28 +48,21 @@ class IncreaseIncome(object):
     def data_analysis(self):
         eb = self.table[(self.table['前日金额'] >= 5000)
                         & (self.table['环比增长'] >= 1)].copy()
-        eb['环比增长率评分'] = eb['环比增长'].apply(lambda x : self.__score_proportion(x))
-        eb['收入增长量评分'] = eb['收入增长'].apply(lambda x : self.__score_value(x))
-        eb['异增评分'] = eb['环比增长率评分'] + eb['收入增长量评分'] + IncreaseIncome.basic_score
+        if self._scroing:
+            eb['环比增长率评分'] = eb['环比增长'].apply(lambda x : self.__score_proportion(x))
+            eb['收入增长量评分'] = eb['收入增长'].apply(lambda x : self.__score_value(x))
+            eb['异增评分'] = eb['环比增长率评分'] + eb['收入增长量评分'] + IncreaseIncome.basic_score
         self.ep_table = eb
         return self
 
-
+    #收入增长量评分
     def __score_value(self, x):
-        n = x/10000
-        score = 0.75*math.pow(n,2)+3*n-3.75
-        if score > 30 :
-            score = 30
-        elif score < 0 :
-            score = 0
+        score = (x-5000)/45000*20
         return score
-
+    
+    #环比增长率评分
     def __score_proportion(self, x):
-        score = 1.25*math.pow(x,2)+2.5*x-3.75
-        if score > 40 :
-            score = 40
-        elif score < 0 :
-            score = 0
+        score = 2/5*math.pow(x,2)
         return score 
     
     def data_output(self):

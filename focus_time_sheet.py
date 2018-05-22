@@ -9,10 +9,11 @@ class FocusTimeIncome(object):
 
     index = '应用ID'
 
-    basic_score = 30
+    basic_score = 0
     
-    def __init__(self, excel_writer):
+    def __init__(self, excel_writer,scoring=True):
         self.name = '时间段集中度'
+        self._scoring = scoring
         self.excelWriter = excel_writer
         self.table = ''
         self.mb_table = ''
@@ -52,32 +53,24 @@ class FocusTimeIncome(object):
         tb = self.table
         self.ep_table = tb[(tb['计费点类型'] != '包时长') & (tb['总收入'] >= 1000) &
                            (tb['TOP6小时占比'] >= 0.95)].copy()
-        self.ep_table['收入总量评分'] = self.ep_table['总收入'].map(
-            lambda x: self.__score_value(x))
-        self.ep_table['时间段占比评分'] = self.ep_table['TOP6小时占比'].map(
-            lambda x: self.__score_proportion(x))
-        self.ep_table[
-            '时间段评分'] = self.ep_table['收入总量评分'] + self.ep_table['时间段占比评分'] + FocusTimeIncome.basic_score
+        if self._scoring:
+            self.ep_table['收入总量评分'] = self.ep_table['总收入'].map(
+                lambda x: self.__score_value(x))
+            self.ep_table['时间段占比评分'] = self.ep_table['TOP6小时占比'].map(
+                lambda x: self.__score_proportion(x))
+            self.ep_table[
+                '时间段评分'] = self.ep_table['收入总量评分'] + self.ep_table['时间段占比评分'] + FocusTimeIncome.basic_score
         return self
 
+    #收入总量评分
     def __score_value(self, x):
-        if x < 10000:
-            return 0
-        n = x / 10000
-        score = 0.5 * math.pow(n, 2) + 2 * n - 2.5
-        if score > 20:
-            score = 20
-        elif score < 0:
-            score = 0
+        score = (x-1000)/49000*15
         return score
 
+    #时间段占比评分
     def __score_proportion(self, x):
         n = x * 100 - 95
-        score = 0.5 * math.pow(n, 2) + 7.5 * n 
-        if score > 50:
-            score = 50
-        elif score < 0:
-            score = 0
+        score = 9/5 * math.pow(n, 2)
         return score
 
     def data_output(self):

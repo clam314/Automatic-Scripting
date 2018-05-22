@@ -8,10 +8,11 @@ class EhoursIncome(object):
 
     index = '应用ID'
 
-    basic_score = 80
+    basic_score = 0
 
-    def __init__(self, excel_writer):
+    def __init__(self, excel_writer,scoring=True):
         self.name = '闲时集中度'
+        self._scoring = scoring
         self.excelWriter = excel_writer
         self.table = ''
         self.ep_table = ''
@@ -43,19 +44,17 @@ class EhoursIncome(object):
     def data_analysis(self):
         tb = self.table
         self.ep_table = tb[(tb['总收入'] >= 1000) & (tb['闲时占比'] >= 0.3)].copy()
-        self.ep_table['占比评分'] = self.ep_table['闲时占比'].map(
-            lambda x: self.__score_proportion(x))
-        self.ep_table[
-            '闲时评分'] = self.ep_table['占比评分'] + EhoursIncome.basic_score
+        if self._scoring:
+            self.ep_table['占比评分'] = self.ep_table['闲时占比'].map(
+                lambda x: self.__score_proportion(x))
+            self.ep_table[
+                '闲时评分'] = self.ep_table['占比评分'] + EhoursIncome.basic_score
         return self
 
+    #占比评分
     def __score_proportion(self, x):
-        n = x * 10
-        score = 2 * math.pow(n, 2) - 6 * n
-        if score > 20:
-            score = 20
-        elif score < 0:
-            score = 0
+        n = x * 10 - 3
+        score = 100/49*math.pow(n,2)
         return score
 
     def data_output(self):

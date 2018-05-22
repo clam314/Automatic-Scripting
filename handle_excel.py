@@ -8,11 +8,6 @@ ref_dir = './reference/'
 ref_file = ref_dir+'网页计费全量计费点（包时长）.xlsx'
 
 def cal_score(se):
-    # dim = (se[4] - 1) * 10
-    # max = se[0:4].max()
-    # score = dim + max
-    # if score > 100:
-    #     score = 100
     score = se.sum()
     return score
 
