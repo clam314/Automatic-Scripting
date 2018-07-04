@@ -17,4 +17,4 @@ if not(all_word == None):
         print("delete:",word)
 
 print("path",cu.cur_dir)
-time.sleep(8)
+time.sleep(2)

@@ -30,7 +30,7 @@ class ProvinceIncome(object):
         self.income_tb = ''
         self.ep_table = ''
         ProvinceIncome.theshold = self.__create_thsehold_list()
-        self.statistics_columns = ['应用名称', '应用ID', 'AP代码', 'AP名称', '分省评分']
+        self.statistics_columns = ['应用名称', '应用ID', 'AP代码', 'AP名称', '分省评分','分省异常','TOP省份占比']
 
     def create_sheet(self, file_name, sheet_name='分省分应用流水', header=1):
         self.table = pd.read_excel(
@@ -77,29 +77,32 @@ class ProvinceIncome(object):
         return self
 
     def data_analysis(self):
-        eb = self.table[(self.table['总金额'] >= 5000)
-                        & (self.table['较占比阈值增长部分'] > 0)].copy()
+        eb = self.table[(self.table['总金额'] >= 5000) & (self.table['较占比阈值增长部分']>0)].copy()
+        eb['分省异常'] = eb['较占比阈值增长部分'].apply(lambda x : self._isExp(x))
         if self._scoring:
             eb['偏离度评分'] = eb[['计费省份个数','TOP省份占比']].apply(lambda x: self.__score_proportion(x),axis = 1)
             eb['收入总量评分'] = eb['总金额'].apply(lambda x: self.__score_value(x))
             eb['分省评分'] = eb['偏离度评分'] + eb['收入总量评分'] + ProvinceIncome.basic_score
-        self.ep_table = eb
+        self.ep_table = eb[eb['分省评分']>0]
         return self
+
+    def _isExp(self,x):
+        if x>0:
+            return 1
+        else:
+            return 0
 
     #收入总量评分
     def __score_value(self, x):
-        score = (x-5000)/45000*15
+        score = 0
         return score
 
     #偏离度评分
     def __score_proportion(self, x):
-        num = x[0]
-        if num > 10 :
-            num = 10
-        n = num * x[1]
-        if n <=2 :
-            return 0
-        score = 35/64*math.pow(n,2)
+        if x[1] == 1:
+            return 100
+        n = x[0]*x[1]
+        score = n/12*100
         return score 
 
     def data_output(self):

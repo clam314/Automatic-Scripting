@@ -4,12 +4,13 @@ import handle_excel,create_daily_doc
 
 cu.cur_dir = os.path.dirname(os.path.realpath(__file__))
 
-createDoc = True
+createDoc = False
 exp_source_key = '每日需求'
 excelFiles = cu.find_files(exp_source_key)
 if excelFiles == None:
     print('No file to handle and exit!')
     os._exit(0)
+    time.sleep(2)
 
 for f in excelFiles:
     print('handle:',f)

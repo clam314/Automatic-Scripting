@@ -16,7 +16,7 @@ class EhoursIncome(object):
         self.excelWriter = excel_writer
         self.table = ''
         self.ep_table = ''
-        self.statistics_columns = ['应用名称', '应用ID', 'AP代码', 'AP名称', '闲时评分']
+        self.statistics_columns = ['应用名称', '应用ID', 'AP代码', 'AP名称', '闲时评分','闲时异常','闲时占比']
 
     def create_sheet(self, file_name, sheet_name='应用流水金额', header=1):
         self.table = pd.read_excel(
@@ -43,18 +43,29 @@ class EhoursIncome(object):
 
     def data_analysis(self):
         tb = self.table
-        self.ep_table = tb[(tb['总收入'] >= 1000) & (tb['闲时占比'] >= 0.3)].copy()
+        self.ep_table = tb[tb['总收入'] >= 1000].copy()
+        self.ep_table['闲时异常'] = self.ep_table['闲时占比'].apply(lambda x : self._isExp(x))
         if self._scoring:
             self.ep_table['占比评分'] = self.ep_table['闲时占比'].map(
                 lambda x: self.__score_proportion(x))
             self.ep_table[
                 '闲时评分'] = self.ep_table['占比评分'] + EhoursIncome.basic_score
+        self.ep_table = self.ep_table[self.ep_table['闲时评分']>0]
         return self
+
+    def _isExp(self,x):
+        if x>0.30:
+            return 1
+        else:
+            return 0
 
     #占比评分
     def __score_proportion(self, x):
-        n = x * 10 - 3
-        score = 100/49*math.pow(n,2)
+        score = 0
+        if x < 0.10:
+            score = 0
+        else:
+            score = (x-0.10)/(0.4-0.10)*100
         return score
 
     def data_output(self):

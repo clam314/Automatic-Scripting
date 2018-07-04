@@ -34,21 +34,21 @@ def handle_excel(r_file_name, w_file_name, w_file_name_2):
     statistics_tb.reset_index(drop=True)
     for i in range(0, len(exp_tbs)):
         ll = list(sheetList[i].statistics_columns)
-        statistics_tb = pdu.vlookup(statistics_tb, exp_tbs[i][[ll[1], ll[4]]],
-                                    '应用ID')
-    count_list = list()
-    [count_list.append(s.statistics_columns[4]) for s in sheetList]
+        statistics_tb = pdu.vlookup(statistics_tb, exp_tbs[i][[ll[1], ll[4], ll[5] ,ll[6]]],'应用ID')
+    
 
-    statistics_tb['异常维度个数'] = statistics_tb[count_list].apply(
-        lambda x: x.count(), axis=1)
-    statistics_tb['评分'] = statistics_tb[count_list].apply(
-        lambda x: x.sum(), axis=1)
+    #异常维度个数和总分统计
+    count_list = list()
+    score_list = list()
+    for s  in sheetList:
+        count_list.append(s.statistics_columns[5])
+        score_list.append(s.statistics_columns[4])
+    statistics_tb['异常维度个数'] = statistics_tb[count_list].apply(lambda x: x.sum(), axis=1)
+    statistics_tb['评分'] = statistics_tb[score_list].apply(lambda x: x.sum(), axis=1)
 
     total_income = pd.read_excel(r_file_name, sheet_name='全国', header=1)
     total_income.columns = increase_sheet.IncreaseIncome.sourceHeader
-    statistics_tb = pdu.vlookup(statistics_tb, total_income[['应用ID', '当日金额']],
-                                '应用ID')
-
+    statistics_tb = pdu.vlookup(statistics_tb, total_income[['应用ID', '当日金额','日期']],'应用ID')
     has_type_sheet = True
     try:
         cal_type_tb = pd.read_excel(r_file_name, sheet_name='计费类型')

@@ -21,7 +21,7 @@ class IncreaseIncome(object):
         self._scroing = scoring
         self.table = ''
         self.ep_table = ''
-        self.statistics_columns = ['应用名称','应用ID','AP代码','AP名称','异增评分']
+        self.statistics_columns = ['应用名称','应用ID','AP代码','AP名称','异增评分','异增异常','环比增长']
 
     def create_sheet(self, file_name, sheet_name='全国', header=1):
         self.table = pd.read_excel(
@@ -46,23 +46,33 @@ class IncreaseIncome(object):
         return self
 
     def data_analysis(self):
-        eb = self.table[(self.table['前日金额'] >= 5000)
-                        & (self.table['环比增长'] >= 1)].copy()
+        eb = self.table[self.table['前日金额'] >= 5000].copy()
+        eb['异增异常'] = eb['环比增长'].map(lambda x : self._isExp(x))
         if self._scroing:
             eb['环比增长率评分'] = eb['环比增长'].apply(lambda x : self.__score_proportion(x))
             eb['收入增长量评分'] = eb['收入增长'].apply(lambda x : self.__score_value(x))
             eb['异增评分'] = eb['环比增长率评分'] + eb['收入增长量评分'] + IncreaseIncome.basic_score
-        self.ep_table = eb
+        self.ep_table = eb[eb['异增评分']>0]
         return self
+
+    def _isExp(self,x):
+        if x>1:
+            return 1
+        else:
+            return 0
 
     #收入增长量评分
     def __score_value(self, x):
-        score = (x-5000)/45000*20
+        score = 0
         return score
     
     #环比增长率评分
     def __score_proportion(self, x):
-        score = 2/5*math.pow(x,2)
+        score = 0
+        if x < 0.55:
+            score = 0
+        else:
+            score = (x-0.7)/(5-0.7)*100
         return score 
     
     def data_output(self):
